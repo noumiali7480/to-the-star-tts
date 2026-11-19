@@ -1,1 +1,123 @@
+import os
+import time
+import sqlite3
+import threading
+from flask import Flask
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
+TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+DB = "tts_coin.db"
+RATE = 10
+
+app = Flask(__name__)
+
+def init_db():
+    with sqlite3.connect(DB) as con:
+        con.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            balance REAL DEFAULT 0,
+            last_mine INTEGER DEFAULT 0,
+            referrer INTEGER DEFAULT 0
+        )
+        """)
+
+def register(uid, ref=0):
+    with sqlite3.connect(DB) as con:
+        con.execute(
+            "INSERT OR IGNORE INTO users(user_id,referrer) VALUES (?,?)",
+            (uid, ref if ref != uid else 0)
+        )async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    ref = int(context.args[0]) if context.args and context.args[0].isdigit() else 0
+
+    register(uid, ref)
+
+    keyboard = [
+        [InlineKeyboardButton("⛏️ التعدين", callback_data="mine")],
+        [InlineKeyboardButton("💰 رصيدي", callback_data="balance")],
+        [InlineKeyboardButton("👥 دعوة الأصدقاء", callback_data="ref")],
+        [InlineKeyboardButton("💳 طلب السحب", callback_data="withdraw")]
+    ]
+
+    await update.message.reply_text(
+        "🌟 أهلاً بك في TTS Coin!\nاختر من القائمة:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    uid = q.from_user.id
+
+    if q.data == "mine":
+        now = int(time.time())
+
+        with sqlite3.connect(DB) as con:
+            row = con.execute(
+                "SELECT last_mine FROM users WHERE user_id=?",
+                (uid,)
+            ).fetchone()
+
+            if now - row[0] >= 3600:
+                con.execute(
+                    "UPDATE users SET balance=balance+10,last_mine=? WHERE user_id=?",
+                    (now, uid)
+                )
+                msg = "✅ حصلت على 10 TTS Coin!"
+            else:
+                left = 3600 - (now - row[0])
+                msg = f"⏳ انتظر {left // 60} دقيقة."
+
+        await q.message.reply_text(msg)
+
+    elif q.data == "balance":
+        with sqlite3.connect(DB) as con:
+            row = con.execute(
+                "SELECT balance FROM users WHERE user_id=?",
+                (uid,)
+            ).fetchone()
+
+        await q.message.reply_text(f"💰 رصيدك: {row[0]} TTS Coin")    elif q.data == "ref":
+        bot = await context.bot.get_me()
+        link = f"https://t.me/{bot.username}?start={uid}"
+        await q.message.reply_text(
+            f"👥 رابط دعوة الأصدقاء:\n{link}"
+        )
+
+    elif q.data == "withdraw":
+        await q.message.reply_text(
+            "💳 طلب السحب التجريبي\n"
+            "السحب الحقيقي غير متاح حالياً."
+        )
+
+
+@app.route("/")
+def home():
+    return "TTS Coin Bot is running!"async def main():
+    init_db()
+
+    bot = Application.builder().token(TOKEN).build()
+
+    bot.add_handler(CommandHandler("start", start))
+    bot.add_handler(CallbackQueryHandler(buttons))
+
+    await bot.initialize()
+    await bot.start()
+    await bot.updater.start_polling()
+
+    await asyncio.Event().wait()
+
+
+if __name__ == "__main__":
+    import asyncio
+    import threading
+
+    threading.Thread(
+        target=lambda: app.run(
+            host="0.0.0.0",
+            port=int(os.environ.get("PORT", 10000))
+        ),
+        daemon=True
+    ).start()
+
+    asyncio.run(main())
