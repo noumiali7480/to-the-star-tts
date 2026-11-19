@@ -38,8 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Use /invite to invite friends.\n"
         
         "Use /withdraw to request a simulated withdrawal."
-    )
-    
+    ) 
     async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
