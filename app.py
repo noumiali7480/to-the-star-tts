@@ -1,7 +1,7 @@
 import os
 import threading
 from flask import Flask
-from bot import main
+
 
 app = Flask(__name__)
 
