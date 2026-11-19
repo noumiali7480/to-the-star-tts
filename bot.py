@@ -41,7 +41,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ) 
     async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-
     con = sqlite3.connect(DB)
     cur = con.cursor()
     cur.execute("SELECT balance FROM users WHERE id=?", (user_id,))
