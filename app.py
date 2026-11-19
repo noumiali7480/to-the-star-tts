@@ -9,10 +9,6 @@ app = Flask(__name__)
 def home():
     return "TTS Coin Bot is running!"
 
-threading.Thread(
-    target=main,
-    daemon=True
-).start()
 
 if __name__ == "__main__":
     app.run(
