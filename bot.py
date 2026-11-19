@@ -39,6 +39,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         "Use /withdraw to request a simulated withdrawal."
     )
+    
     async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
@@ -63,6 +64,7 @@ async def mine(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "UPDATE users SET balance = balance + 1 WHERE id=?",
         (user_id,)
     )
+    
     con.commit()
     con.close()
 
@@ -81,9 +83,7 @@ async def mine(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📤 Withdrawal requests are currently simulated.\n"
         "No real money or cryptocurrency is transferred."
-    )
-
-
+    ) 
 def main():
     if not TOKEN:
         raise ValueError("BOT_TOKEN is missing")
